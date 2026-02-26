@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Projects</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <h1>Projects</h1>
+    <p>Works in progress, mini challenges, and stuff I got inspired to throw together.</p>
+
+    <!-- Main Navigation -->
+    <div class="main-nav">
+      <button onclick="window.location.href='index.html'">Home</button>
+      <button class="active" onclick="window.location.href='project-page.html'">Projects</button>
+      <button onclick="window.location.href='aboutme.html'">About Me</button>
+    </div>
+
+    <!-- Slider -->
+    <div class="slider">
+      <div class="slides">
+        <!-- Slide 1 -->
+        <div class="slide">
+          <h2>Coming Soon</h2>
+          <p>Coming Soon</p>
+        </div>
+
+        <!-- Slide 2: One Hour Shooter -->
+        <div class="slide">
+          <h2>One Hour Shooter</h2>
+          <p>
+            My first game made with pygame, an arcade style shooter you can play in your browser.
+          </p>
+          <button class="project-cta" onclick="window.open('one-hour-shooter/index.html', '_blank')">Play One Hour Shooter</button>
+        </div>
+
+        <!-- Slide 3: Journal -->
+        <div class="slide">
+          <div class="journal-section">
+            <h2>Journal</h2>
+
+            <!-- Inputs -->
+            <div class="journal-inputs">
+              <input type="text" id="j-date" placeholder="Date" />
+              <input type="text" id="j-text" placeholder="Your Entry" />
+              <input type="text" id="j-mood" placeholder="Mood" />
+              <button id="j-add">Add Journal Entry</button>
+            </div>
+
+            <!-- View / Search -->
+            <div class="journal-actions">
+              <button id="j-view">View All Entries</button>
+              <input type="text" id="j-search" placeholder="Search entries" />
+              <button id="j-search-btn">Search</button>
+              <button id="j-clear">Clear Journal</button>
+            </div>
+
+            <!-- Output -->
+            <div id="j-output">Your journal entries will appear here.</div>
+          </div>
+        </div>
+
+        <!-- Slide 4: Shopping Calculator -->
+        <div class="slide">
+          <h2>Shopping Calculator</h2>
+          <div class="calculator">
+            <input type="text" id="item" placeholder="Item Name" />
+            <input type="number" id="quantity" placeholder="Quantity" />
+            <input type="number" step="0.01" id="price" placeholder="Price" />
+            <button id="add-btn">Add Item</button>
+            <button id="remove-btn">Remove Last Item</button>
+            <button id="clear-btn">Clear List</button>
+          </div>
+          <div id="output">Your shopping list will appear here.</div>
+          <p>
+            Calculator assumes 6% sales tax. <br />
+            I may make this adjustable in the future.
+          </p>
+        </div>
+      </div>
+
+      <!-- Slider Buttons -->
+      <div class="slide-buttons">
+        <button class="active">Coming Soon</button>
+        <button>One Hour Shooter</button>
+        <button>Journal</button>
+        <button>Shopping Calculator</button>
+      </div>
+    </div>
+
+    <!-- Pyodide library first -->
+    <script defer src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+
+    <!-- App JS last -->
+    <script defer src="script.js"></script>
+  </body>
+  </html>
