@@ -1,0 +1,408 @@
+@import url("https://fonts.googleapis.com/css2?family=Caveat+Brush&family=Chelsea+Market&display=swap");
+
+/* ========================
+   Root Colors & Global Styles
+======================== */
+:root {
+  --color-1: #f38aaa;
+  --color-2: #def38a;
+  --color-3: #8af3d3;
+  --color-4: #9e8af3;
+  --text-color: #685f8a;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Caveat Brush", cursive;
+  color: var(--text-color);
+  background: linear-gradient(
+    120deg,
+    var(--color-1),
+    var(--color-2),
+    var(--color-3),
+    var(--color-4)
+  );
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  text-align: center;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+h1, h2, h3 {
+  font-family: "Chelsea Market", cursive;
+  margin: 10px 0;
+}
+
+h1 { font-size: clamp(2rem, 12vw, 8rem); }
+h2 { font-size: clamp(1.5rem, 5vw, 3rem); }
+h3 { font-size: clamp(1rem, 4vw, 2rem); }
+p {
+  max-width: 80%;
+  font-size: clamp(1rem, 3vw, 1.5rem);
+  margin-bottom: 30px;
+}
+
+/* ========================
+   Main Navigation Buttons
+======================== */
+.main-nav, .slide-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin: 20px 0;
+}
+
+.main-nav button, .slide-buttons button, .calculator button, .journal-section button, .project-cta {
+  padding: 10px 20px;
+  border-radius: 15px;
+  border: none;
+  background: linear-gradient(90deg, #a5b4fc, #c084fc, #f0abfc);
+  color: var(--text-color);
+  font-family: "Chelsea Market", cursive;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 4px var(--text-color);
+  transition: all 0.3s ease;
+}
+
+.main-nav button:hover, 
+.slide-buttons button:hover, 
+.calculator button:hover, 
+.journal-section button:hover,
+.project-cta:hover {
+  background: linear-gradient(90deg, #818cf8, #a855f7, #e879f9);
+  transform: scale(1.05);
+  box-shadow: 0 6px rgba(160, 130, 255, 0.4);
+}
+
+.main-nav button:active,
+.slide-buttons button:active,
+.calculator button:active,
+.journal-section button:active,
+.project-cta:active {
+  background-color: #c75b7c;
+  box-shadow: 0 2px #9c3554;
+  transform: translateY(2px);
+}
+
+.main-nav button.active, .slide-buttons button.active {
+  background-color: var(--color-1);
+  transform: scale(1.1);
+}
+
+/* ========================
+   Slider Styles
+======================== */
+.slider {
+  width: 100%;
+  max-width: 600px;
+  margin: 20px auto;
+}
+
+.slides {
+  display: flex;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+  width: 100%;
+  scroll-snap-type: x mandatory;
+}
+
+.slide {
+  flex: 0 0 100%;
+  min-height: 600px;
+  scroll-snap-align: start;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  font-size: 2rem;
+  background-color: rgba(239, 168, 228, 0.5);
+  border-radius: 10px;
+  padding: 20px;
+}
+
+.slides::-webkit-scrollbar {
+  height: 6px;
+}
+.slides::-webkit-scrollbar-thumb { background: black; border-radius: 10px; }
+.slides::-webkit-scrollbar-track { background: transparent; }
+
+/* ========================
+   Shopping Calculator
+======================== */
+.calculator input {
+  padding: 8px;
+  margin: 5px;
+  border-radius: 10px;
+  border: 2px solid var(--color-4);
+  width: 120px;
+  font-family: "Caveat Brush", cursive;
+  font-size: 1rem;
+}
+
+#output {
+  margin-top: 20px;
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 15px;
+  padding: 20px;
+  max-width: 500px;
+  width: 90%;
+  max-height: 400px;
+  overflow-y: auto;
+  font-family: "Caveat Brush", cursive;
+  font-size: clamp(1rem, 2vw, 1.5rem);
+  color: var(--text-color);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  text-align: left;
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+/* ========================
+   Journal Section
+======================== */
+.journal-section {
+  text-align: center;
+  margin-top: 30px;
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 20px;
+  padding: 16px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(8px);
+  max-width: 640px;
+  width: 92%;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.journal-section input {
+  display: block;
+  width: 80%;
+  max-width: 400px;
+  margin: 8px auto;
+  padding: 10px;
+  border-radius: 12px;
+  border: 2px solid rgba(200, 200, 255, 0.3);
+  background: rgba(255, 255, 255, 0.7);
+  font-size: 1rem;
+  transition: all 0.3s ease;
+}
+
+.journal-section input:focus {
+  outline: none;
+  border-color: #c084fc;
+  box-shadow: 0 0 10px rgba(192, 132, 252, 0.5);
+}
+
+.journal-search {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin: 12px 0;
+}
+
+.journal-search input {
+  flex: 1;
+  max-width: 250px;
+}
+
+#j-output {
+  white-space: pre-wrap;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 12px;
+  padding: 15px;
+  margin-top: 15px;
+  max-width: 500px;
+  max-height: 300px;
+  overflow-y: auto;
+  margin-left: auto;
+  margin-right: auto;
+  box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.05);
+  position: relative;
+}
+
+#j-output::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 30px;
+  pointer-events: none;
+  background: linear-gradient(rgba(255,255,255,0), rgba(255,255,255,0.6));
+}
+/* ========================
+   Journal Buttons (matches main/nav/slider)
+======================== */
+.journal-section button {
+  padding: 10px 20px;
+  border-radius: 15px;
+  border: none;
+  background: linear-gradient(90deg, #a5b4fc, #c084fc, #f0abfc);
+  color: var(--text-color);
+  font-family: "Chelsea Market", cursive;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 4px var(--text-color);
+  transition: all 0.3s ease;
+}
+
+.journal-section button:hover {
+  background: linear-gradient(90deg, #818cf8, #a855f7, #e879f9);
+  transform: scale(1.05);
+  box-shadow: 0 6px rgba(160, 130, 255, 0.4);
+}
+
+.journal-section button:active {
+  background-color: #c75b7c;
+  box-shadow: 0 2px #9c3554;
+  transform: translateY(2px);
+}
+
+
+/* ========================
+   Responsive Adjustments
+======================== */
+@media (max-width: 768px) {
+  .slide {
+    min-height: 500px;
+    font-size: 1.8rem;
+    padding: 15px;
+  }
+
+  .calculator input, .journal-section input {
+    font-family: "Caveat Brush", cursive;
+    width: 90%;
+    font-size: 0.9rem;
+  }
+
+  .main-nav button, .slide-buttons button, .calculator button, .journal-section button {
+    padding: 8px 14px;
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .slide {
+    min-height: 400px;
+    font-size: 1.5rem;
+    padding: 10px;
+  }
+
+  .calculator input, .journal-section input {
+    width: 100%;
+    font-size: 0.85rem;
+  }
+
+  .main-nav button, .slide-buttons button, .calculator button, .journal-section button {
+    padding: 6px 12px;
+    font-size: 0.85rem;
+  }
+}
+/* ========================
+   Slider Scroll
+======================== */
+.slider {
+  width: 100%;
+  max-width: 600px;
+  margin: 20px auto;
+}
+
+.slides {
+  display: flex;
+  flex-direction: column; /* vertical scrolling for content inside each slide */
+  overflow: hidden; /* hide horizontal overflow */
+  width: 100%;
+}
+
+.slide {
+  flex: 0 0 auto;
+  min-height: 500px; /* or adjust to taste */
+  max-height: 80vh; /* limits height on any screen */
+  overflow-y: auto; /* allows scrolling inside each slide */
+  scroll-behavior: smooth;
+  padding: 20px;
+  background-color: rgba(239, 168, 228, 0.5);
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+
+/* Scrollbar for slides, journal, shopping list */
+.slide::-webkit-scrollbar,
+#j-output::-webkit-scrollbar,
+#output::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.slide::-webkit-scrollbar-thumb,
+#j-output::-webkit-scrollbar-thumb,
+#output::-webkit-scrollbar-thumb {
+  background: var(--color-4);
+  border-radius: 10px;
+}
+
+.slide::-webkit-scrollbar-track,
+#j-output::-webkit-scrollbar-track,
+#output::-webkit-scrollbar-track {
+  background: rgba(255,255,255,0.3);
+}
+
+/* Journal output scroll */
+#j-output {
+  margin-top: 16px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding: 12px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.4);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  font-family: "Caveat Brush", cursive;
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+/* Shopping list output scroll */
+#output {
+  margin-top: 20px;
+  max-height: 250px;
+  overflow-y: auto;
+  padding: 15px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.4);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  font-family: "Caveat Brush", cursive;
+  font-size: clamp(1rem, 2vw, 1.2rem);
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+/* ========================
+   Slider Animation Overrides
+   - Keep appearance, add smooth horizontal slide
+======================== */
+.slider { overflow: hidden; }
+.slides {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  transition: transform 0.5s ease;
+  will-change: transform;
+  overflow: visible; /* ensure off-screen slides can slide into view */
+}
+.slide {
+  flex: 0 0 100%;
+  margin-bottom: 0; /* avoid vertical gaps when arranged horizontally */
+}
