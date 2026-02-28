@@ -49,6 +49,13 @@ p {
   margin-bottom: 30px;
 }
 
+a {
+  max-width: 80%;
+  font-size: clamp(1rem, 3vw, 1.5rem);
+  margin-bottom: 30px;
+}
+
+
 /* ========================
    Main Navigation Buttons
 ======================== */
@@ -375,6 +382,7 @@ p {
 }
 
 /* Shopping list output scroll */
+
 #output {
   margin-top: 20px;
   max-height: 250px;
