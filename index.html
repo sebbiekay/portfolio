@@ -204,45 +204,102 @@
 </section>
 
 <script>
-const csvUrl = "Phttps://docs.google.com/spreadsheets/d/e/2PACX-1vQnMuksnF4xa8ipamckFjMRBld-qFSiURv4cImc-M10EMDULMVEeUGztF_FVp6xFobRZRnjyaZt1Kdc/pub?output=csv";
+const tsvUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQnMuksnF4xa8ipamckFjMRBld-qFSiURv4cImc-M10EMDULMVEeUGztF_FVp6xFobRZRnjyaZt1Kdc/pub?output=tsv";
 
-fetch(csvUrl)
+// Robust TSV parser (handles quotes and tabs inside fields)
+function parseTSVLine(line) {
+  const result = [];
+  let current = '';
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+
+    if (char === '"') {
+      if (inQuotes && line[i + 1] === '"') {
+        current += '"';
+        i++;
+      } else {
+        inQuotes = !inQuotes;
+      }
+    } else if (char === '\t' && !inQuotes) {
+      result.push(current);
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  result.push(current);
+  return result;
+}
+
+fetch(tsvUrl)
   .then(response => response.text())
   .then(text => {
-    const rows = text.split("\n").slice(1); // Skip header row
+    const rows = text.split("\n").slice(1); // skip header
     const container = document.getElementById("devlog-container");
 
-    rows.reverse().forEach(row => {
-      if (!row.trim()) return;
+    const entries = rows
+      .reverse()
+      .map(row => {
+        if (!row.trim()) return null;
+        const columns = parseTSVLine(row);
+        if (!columns || columns.length < 3) return null;
 
-      // Proper CSV parsing (handles commas in body text)
-      const columns = row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
+        const rawDate = columns[0].trim().replace(/^"|"$/g, "");
+        const title = columns[1].trim().replace(/^"|"$/g, "");
+        const body = columns[2].trim().replace(/^"|"$/g, "");
 
-      if (!columns || columns.length < 3) return;
+        const dateObj = new Date(rawDate);
+        const formattedDate = dateObj.toLocaleDateString(undefined, {
+          year: "numeric",
+          month: "short",
+          day: "numeric"
+        });
 
-      const rawDate = columns[0].replace(/"/g, "");
-      const title = columns[1].replace(/"/g, "");
-      const body = columns[2].replace(/"/g, "");
+        return { date: formattedDate, title, body };
+      })
+      .filter(Boolean);
 
-      // Format the Google Form timestamp into a readable date
-      const dateObj = new Date(rawDate);
-      const formattedDate = dateObj.toLocaleDateString(undefined, {
-        year: "numeric",
-        month: "short",
-        day: "numeric"
+    if (entries.length === 0) return;
+
+    // Render only the latest entry initially
+    const latest = entries[0];
+    const latestEntry = document.createElement("div");
+    latestEntry.className = "devlog-entry";
+    latestEntry.innerHTML = `
+      <div class="devlog-date">${latest.date}</div>
+      <h3 class="devlog-title">${latest.title}</h3>
+      <p class="devlog-body">${latest.body}</p>
+    `;
+    container.appendChild(latestEntry);
+
+    // Button to reveal older entries
+    if (entries.length > 1) {
+      const button = document.createElement("button");
+      button.textContent = "Show Older Entries";
+      button.className = "devlog-show-older";
+      container.appendChild(button);
+
+      const olderContainer = document.createElement("div");
+      olderContainer.style.display = "none";
+      entries.slice(1).forEach(entry => {
+        const div = document.createElement("div");
+        div.className = "devlog-entry";
+        div.innerHTML = `
+          <div class="devlog-date">${entry.date}</div>
+          <h3 class="devlog-title">${entry.title}</h3>
+          <p class="devlog-body">${entry.body}</p>
+        `;
+        olderContainer.appendChild(div);
       });
+      container.appendChild(olderContainer);
 
-      const entry = document.createElement("div");
-      entry.className = "devlog-entry";
-
-      entry.innerHTML = `
-        <div class="devlog-date">${formattedDate}</div>
-        <h3 class="devlog-title">${title}</h3>
-        <p class="devlog-body">${body}</p>
-      `;
-
-      container.appendChild(entry);
-    });
+      button.addEventListener("click", () => {
+        olderContainer.style.display = "block";
+        button.style.display = "none"; // hide button after clicked
+      });
+    }
   })
   .catch(err => {
     console.error("Devlog failed to load:", err);
