@@ -198,36 +198,54 @@
   <div id="devlog-container"></div>
 </section>
 
-<script>
-fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQnMuksnF4xa8ipamckFjMRBld-qFSiURv4cImc-M10EMDULMVEeUGztF_FVp6xFobRZRnjyaZt1Kdc/pub?output=csv")
-    .then(response => response.text())
-  .then(data => {
+<section id="devlog">
+  <h2>🛠 Devlog</h2>
+  <div id="devlog-container"></div>
+</section>
 
-    const rows = data.split("\n").slice(1);
+<script>
+const csvUrl = "Phttps://docs.google.com/spreadsheets/d/e/2PACX-1vQnMuksnF4xa8ipamckFjMRBld-qFSiURv4cImc-M10EMDULMVEeUGztF_FVp6xFobRZRnjyaZt1Kdc/pub?output=csv";
+
+fetch(csvUrl)
+  .then(response => response.text())
+  .then(text => {
+    const rows = text.split("\n").slice(1); // Skip header row
     const container = document.getElementById("devlog-container");
 
     rows.reverse().forEach(row => {
+      if (!row.trim()) return;
 
-      // Proper CSV split that respects quotes
-      const columns = row.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+      // Proper CSV parsing (handles commas in body text)
+      const columns = row.match(/(".*?"|[^",]+)(?=\s*,|\s*$)/g);
 
-      if (columns && columns.length >= 2) {
+      if (!columns || columns.length < 3) return;
 
-        const date = columns[0].replace(/"/g, '');
-        const body = columns.slice(1).join(", ").replace(/"/g, '');
+      const rawDate = columns[0].replace(/"/g, "");
+      const title = columns[1].replace(/"/g, "");
+      const body = columns[2].replace(/"/g, "");
 
-        const entry = document.createElement("div");
-        entry.className = "dev-entry";
+      // Format the Google Form timestamp into a readable date
+      const dateObj = new Date(rawDate);
+      const formattedDate = dateObj.toLocaleDateString(undefined, {
+        year: "numeric",
+        month: "short",
+        day: "numeric"
+      });
 
-        entry.innerHTML = `
-          <h3>${date}</h3>
-          <p>${body}</p>
-        `;
+      const entry = document.createElement("div");
+      entry.className = "devlog-entry";
 
-        container.appendChild(entry);
-      }
+      entry.innerHTML = `
+        <div class="devlog-date">${formattedDate}</div>
+        <h3 class="devlog-title">${title}</h3>
+        <p class="devlog-body">${body}</p>
+      `;
 
+      container.appendChild(entry);
     });
+  })
+  .catch(err => {
+    console.error("Devlog failed to load:", err);
   });
 </script>
   <!-- PapaParse for CSV parsing -->
