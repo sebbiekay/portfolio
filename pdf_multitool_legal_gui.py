@@ -19,7 +19,7 @@ import tempfile
 from cgi import FieldStorage
 from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import urlparse
 
 from PyPDF2 import PdfReader, PdfWriter
 from pdf2image import convert_from_path
@@ -50,6 +50,31 @@ def save_uploaded_pdf(file_item):
     with open(target_path, "wb") as out_file:
         shutil.copyfileobj(file_item.file, out_file)
     return target_path
+
+
+def save_uploaded_pdfs(file_items):
+    if not file_items:
+        raise ValueError("Please select PDF files.")
+
+    temp_dir = tempfile.mkdtemp(prefix="legal_pdf_merge_upload_")
+    saved = []
+    used_names = set()
+    for idx, item in enumerate(file_items, 1):
+        filename = os.path.basename(item.filename or f"uploaded_{idx}.pdf")
+        if not filename.lower().endswith(".pdf"):
+            raise ValueError("All uploaded files must be PDFs.")
+        base, ext = os.path.splitext(filename)
+        candidate = filename
+        suffix = 1
+        while candidate in used_names:
+            candidate = f"{base}_{suffix}{ext}"
+            suffix += 1
+        used_names.add(candidate)
+        target_path = os.path.join(temp_dir, candidate)
+        with open(target_path, "wb") as out_file:
+            shutil.copyfileobj(item.file, out_file)
+        saved.append(target_path)
+    return saved
 
 
 class LegalPdfSplitterEngine:
@@ -225,15 +250,74 @@ def run_job(job_id, payload):
             ),
         )
         update_job(job_id, status="running")
-        result = engine.run_split(
-            pdf_path=payload["pdf_path"],
-            base_name=payload["base_name"],
-            split_keyword=payload["split_keyword"],
-            output_folder=payload["output_folder"] or None,
-        )
+        if payload["action"] == "split":
+            result = engine.run_split(
+                pdf_path=payload["pdf_path"],
+                base_name=payload["base_name"],
+                split_keyword=payload["split_keyword"],
+                output_folder=payload["output_folder"] or None,
+            )
+        elif payload["action"] == "merge":
+            result = run_merge(
+                pdf_paths=payload["pdf_paths"],
+                output_name=payload["output_name"],
+                output_folder=payload["output_folder"] or None,
+                log_callback=lambda msg: append_log(job_id, msg),
+                progress_callback=lambda value, total, phase: update_job(
+                    job_id,
+                    progress={
+                        "phase": phase,
+                        "current": value,
+                        "total": total,
+                        "percent": (value / total * 100) if total else 0,
+                    },
+                ),
+            )
+        else:
+            raise ValueError("Unknown action.")
         update_job(job_id, status="done", result=result, ended_at=time.time())
     except Exception as exc:
         update_job(job_id, status="error", error=str(exc), ended_at=time.time())
+
+
+def run_merge(pdf_paths, output_name, output_folder=None, log_callback=None, progress_callback=None):
+    if not pdf_paths or len(pdf_paths) < 2:
+        raise ValueError("Please upload at least two PDFs to merge.")
+
+    writer = PdfWriter()
+    total_files = len(pdf_paths)
+
+    for idx, pdf_path in enumerate(pdf_paths, 1):
+        if progress_callback:
+            progress_callback(idx, total_files, "Merging")
+        if log_callback:
+            log_callback(f"Reading file {idx}/{total_files}: {os.path.basename(pdf_path)}")
+        reader = PdfReader(pdf_path)
+        for page in reader.pages:
+            writer.add_page(page)
+
+    output_name = (output_name or "Merged").strip()
+    if not output_name:
+        output_name = "Merged"
+    if not output_name.lower().endswith(".pdf"):
+        output_name += ".pdf"
+
+    if not output_folder:
+        output_folder = os.path.expanduser("~/Downloads")
+    os.makedirs(output_folder, exist_ok=True)
+    out_path = os.path.join(output_folder, output_name)
+
+    with open(out_path, "wb") as out_file:
+        writer.write(out_file)
+
+    if log_callback:
+        log_callback(f"Merged file saved: {out_path}")
+
+    return {
+        "output_folder": output_folder,
+        "merged_file": out_path,
+        "input_count": total_files,
+    }
 
 
 def html_page(body):
@@ -269,6 +353,9 @@ def html_page(body):
       border-radius: 14px;
       padding: 16px;
       box-shadow: 0 8px 30px rgba(16, 32, 24, 0.08);
+    }}
+    .card + .card {{
+      margin-top: 16px;
     }}
     h1 {{
       margin: 0 0 8px 0;
@@ -322,6 +409,14 @@ def html_page(body):
       font-weight: 700;
       margin-top: 10px;
     }}
+    .dropzone {{
+      margin-top: 6px;
+      border: 2px dashed #9ab9a7;
+      border-radius: 10px;
+      padding: 18px;
+      text-align: center;
+      background: #f7fbf8;
+    }}
   </style>
 </head>
 <body>
@@ -371,36 +466,53 @@ class Handler(BaseHTTPRequestHandler):
 
     def do_POST(self):
         parsed = urlparse(self.path)
-        if parsed.path != "/start":
+        if parsed.path not in ("/start", "/merge"):
             self._send_html(html_page("<div class='card'>Not found</div>"), code=404)
             return
 
         content_type = self.headers.get("Content-Type", "")
-        pdf_path = ""
-        base_name = "Case"
-        split_keyword = ""
-        output_folder = ""
 
         try:
-            if "multipart/form-data" in content_type:
-                form = FieldStorage(
-                    fp=self.rfile,
-                    headers=self.headers,
-                    environ={
-                        "REQUEST_METHOD": "POST",
-                        "CONTENT_TYPE": content_type,
-                    },
-                )
+            if "multipart/form-data" not in content_type:
+                raise ValueError("Invalid form submission type.")
+            form = FieldStorage(
+                fp=self.rfile,
+                headers=self.headers,
+                environ={
+                    "REQUEST_METHOD": "POST",
+                    "CONTENT_TYPE": content_type,
+                },
+            )
+
+            if parsed.path == "/start":
                 if "pdf_file" in form and getattr(form["pdf_file"], "filename", None):
                     pdf_path = save_uploaded_pdf(form["pdf_file"])
                 else:
                     raise ValueError("Please select a PDF file.")
 
-                base_name = (form.getfirst("base_name", "Case") or "Case").strip() or "Case"
-                split_keyword = (form.getfirst("split_keyword", "") or "").strip().lower()
-                output_folder = (form.getfirst("output_folder", "") or "").strip()
+                payload = {
+                    "action": "split",
+                    "pdf_path": pdf_path,
+                    "base_name": (form.getfirst("base_name", "Case") or "Case").strip() or "Case",
+                    "split_keyword": (form.getfirst("split_keyword", "") or "").strip().lower(),
+                    "output_folder": (form.getfirst("output_folder", "") or "").strip(),
+                }
             else:
-                raise ValueError("Invalid form submission type.")
+                raw_items = form["merge_files"] if "merge_files" in form else []
+                if isinstance(raw_items, list):
+                    file_items = [item for item in raw_items if getattr(item, "filename", None)]
+                elif getattr(raw_items, "filename", None):
+                    file_items = [raw_items]
+                else:
+                    file_items = []
+
+                pdf_paths = save_uploaded_pdfs(file_items)
+                payload = {
+                    "action": "merge",
+                    "pdf_paths": pdf_paths,
+                    "output_name": (form.getfirst("output_name", "Merged") or "Merged").strip(),
+                    "output_folder": (form.getfirst("output_folder", "") or "").strip(),
+                }
         except Exception as exc:
             self._send_html(
                 html_page(
@@ -424,13 +536,6 @@ class Handler(BaseHTTPRequestHandler):
                 "created_at": time.time(),
                 "ended_at": None,
             }
-
-        payload = {
-            "pdf_path": pdf_path,
-            "base_name": base_name,
-            "split_keyword": split_keyword,
-            "output_folder": output_folder,
-        }
 
         thread = threading.Thread(target=run_job, args=(job_id, payload), daemon=True)
         thread.start()
@@ -458,7 +563,7 @@ class Handler(BaseHTTPRequestHandler):
   <h1>PDF Splitter</h1>
   {warning}
   <form method="post" action="/start" enctype="multipart/form-data" id="splitForm">
-    <div id="dropzone" style="margin-top:6px; border:2px dashed #9ab9a7; border-radius:10px; padding:18px; text-align:center; background:#f7fbf8;">
+    <div id="dropzone" class="dropzone">
       <strong>Drag and drop PDF here</strong><br/>
       or <button type="button" id="pickBtn" style="margin-top:8px;">Choose PDF</button>
       <div id="pickedName" class="muted" style="margin-top:8px; margin-bottom:0;">No file selected</div>
@@ -473,12 +578,33 @@ class Handler(BaseHTTPRequestHandler):
     <button type="submit">Start</button>
   </form>
 </div>
+<div class="card">
+  <h1>PDF Merger</h1>
+  <form method="post" action="/merge" enctype="multipart/form-data" id="mergeForm">
+    <div id="mergeDropzone" class="dropzone">
+      <strong>Drag and drop multiple PDFs here</strong><br/>
+      or <button type="button" id="mergePickBtn" style="margin-top:8px;">Choose PDFs</button>
+      <div id="mergePickedName" class="muted" style="margin-top:8px; margin-bottom:0;">No files selected</div>
+    </div>
+    <input id="merge_files" type="file" name="merge_files" accept="application/pdf,.pdf" multiple style="display:none;" />
+    <label>Merged filename</label>
+    <input name="output_name" value="Merged" />
+    <label>Output folder (optional)</label>
+    <input name="output_folder" placeholder="/Users/you/Downloads" />
+    <button type="submit">Merge</button>
+  </form>
+</div>
 <script>
 const form = document.getElementById('splitForm');
 const input = document.getElementById('pdf_file');
 const pickBtn = document.getElementById('pickBtn');
 const dropzone = document.getElementById('dropzone');
 const pickedName = document.getElementById('pickedName');
+const mergeForm = document.getElementById('mergeForm');
+const mergeInput = document.getElementById('merge_files');
+const mergePickBtn = document.getElementById('mergePickBtn');
+const mergeDropzone = document.getElementById('mergeDropzone');
+const mergePickedName = document.getElementById('mergePickedName');
 
 function updatePickedName() {{
   if (input.files && input.files.length > 0) {{
@@ -521,6 +647,53 @@ form.addEventListener('submit', (e) => {{
     alert('Select a PDF file.');
   }}
 }});
+
+function updateMergePickedName() {{
+  if (!mergeInput.files || mergeInput.files.length === 0) {{
+    mergePickedName.textContent = 'No files selected';
+    return;
+  }}
+  const names = Array.from(mergeInput.files).map(f => f.name);
+  mergePickedName.textContent = `Selected: ${{names.length}} file(s) - ` + names.join(', ');
+}}
+
+mergePickBtn.addEventListener('click', () => mergeInput.click());
+mergeInput.addEventListener('change', updateMergePickedName);
+
+mergeDropzone.addEventListener('dragover', (e) => {{
+  e.preventDefault();
+  mergeDropzone.style.borderColor = '#1b7a4a';
+  mergeDropzone.style.background = '#edf8f1';
+}});
+
+mergeDropzone.addEventListener('dragleave', () => {{
+  mergeDropzone.style.borderColor = '#9ab9a7';
+  mergeDropzone.style.background = '#f7fbf8';
+}});
+
+mergeDropzone.addEventListener('drop', (e) => {{
+  e.preventDefault();
+  mergeDropzone.style.borderColor = '#9ab9a7';
+  mergeDropzone.style.background = '#f7fbf8';
+  const files = e.dataTransfer.files;
+  if (!files || files.length === 0) return;
+  const dt = new DataTransfer();
+  for (const file of files) {{
+    if (file.name.toLowerCase().endsWith('.pdf')) {{
+      dt.items.add(file);
+    }}
+  }}
+  mergeInput.files = dt.files;
+  updateMergePickedName();
+}});
+
+mergeForm.addEventListener('submit', (e) => {{
+  const count = mergeInput.files ? mergeInput.files.length : 0;
+  if (count < 2) {{
+    e.preventDefault();
+    alert('Select at least 2 PDF files to merge.');
+  }}
+}});
 </script>
 """
 
@@ -552,9 +725,15 @@ async function tick() {{
   document.getElementById('phase').textContent = phase;
   document.getElementById('log').textContent = (data.logs || []).join('\\n');
   if (data.status === 'done' && data.result) {{
-    document.getElementById('log').textContent +=
-      `\\n\\nComplete. Files created: ${{data.result.saved_count}}` +
-      `\\nOutput folder: ${{data.result.output_folder}}`;
+    if (typeof data.result.saved_count !== 'undefined') {{
+      document.getElementById('log').textContent +=
+        `\\n\\nComplete. Files created: ${{data.result.saved_count}}` +
+        `\\nOutput folder: ${{data.result.output_folder}}`;
+    }} else if (data.result.merged_file) {{
+      document.getElementById('log').textContent +=
+        `\\n\\nComplete. Merged ${{data.result.input_count}} files.` +
+        `\\nMerged file: ${{data.result.merged_file}}`;
+    }}
     return;
   }}
   if (data.status === 'error') {{
