@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Home</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- Config for purgatory game-->
+  <script type="module" src="main.js"></script>
+
+  <!-- Devlog-specific styling matching your slides & journal aesthetic -->
+  <style>
+    /* Devlog main card */
+    .devlog-wrapper {
+      width: 100%;
+      max-width: 600px;
+      margin: 30px auto 10px;
+    }
+
+    .devlog-card {
+      background: rgba(255, 255, 255, 0.4);
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      backdrop-filter: blur(8px);
+      max-width: 640px;
+      width: 92%;
+      margin-left: auto;
+      margin-right: auto;
+      text-align: center;
+      position: relative;
+    }
+
+    .devlog-card h3 {
+      margin-top: 10px;
+      font-size: clamp(1.2rem, 4vw, 2rem);
+    }
+
+    .devlog-meta {
+      font-size: 0.9rem;
+      color: rgba(0, 0, 0, 0.45);
+      margin-bottom: 8px;
+    }
+
+    .devlog-body {
+      margin-top: 10px;
+      font-size: clamp(1rem, 2vw, 1.3rem);
+      line-height: 1.5;
+      max-height: 200px;
+      overflow-y: auto;
+      padding: 10px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.4);
+      box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.05);
+      white-space: pre-line;
+    }
+
+    .devlog-body::-webkit-scrollbar {
+      width: 8px;
+    }
+    .devlog-body::-webkit-scrollbar-thumb {
+      background: var(--color-4);
+      border-radius: 10px;
+    }
+    .devlog-body::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .devlog-tag {
+      font-family: "Chelsea Market", cursive;
+      background: linear-gradient(90deg, #a5b4fc, #c084fc, #f0abfc);
+      padding: 6px 16px;
+      border-radius: 15px;
+      box-shadow: 0 4px var(--text-color);
+      display: inline-block;
+      font-size: 1rem;
+      margin-bottom: 8px;
+    }
+
+    /* Older updates section styled like a mini slide stack */
+    .devlog-older {
+      max-width: 640px;
+      width: 92%;
+      margin: 10px auto 30px;
+      text-align: left;
+    }
+
+    .devlog-older h4 {
+      font-family: "Chelsea Market", cursive;
+      margin: 16px 0 8px;
+      text-align: center;
+      font-size: clamp(1rem, 3vw, 1.6rem);
+    }
+
+    .devlog-older-empty {
+      font-size: 0.95rem;
+      color: rgba(0, 0, 0, 0.6);
+      text-align: center;
+    }
+
+    .devlog-older-item {
+      background: rgba(255, 255, 255, 0.4);
+      border-radius: 16px;
+      padding: 10px 12px;
+      margin-top: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      backdrop-filter: blur(6px);
+    }
+
+    .devlog-toggle {
+      width: 100%;
+      text-align: left;
+      padding: 8px 14px;
+      border-radius: 12px;
+      border: none;
+      background: linear-gradient(90deg, #a5b4fc, #c084fc, #f0abfc);
+      color: var(--text-color);
+      font-family: "Chelsea Market", cursive;
+      font-size: 0.95rem;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 4px var(--text-color);
+      transition: all 0.25s ease;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+
+    .devlog-toggle:hover {
+      background: linear-gradient(90deg, #818cf8, #a855f7, #e879f9);
+      transform: scale(1.02);
+      box-shadow: 0 6px rgba(160, 130, 255, 0.4);
+    }
+
+    .devlog-toggle:active {
+      box-shadow: 0 2px #9c3554;
+      transform: translateY(2px);
+    }
+
+    .devlog-toggle span.devlog-toggle-title {
+      flex: 1;
+    }
+
+    .devlog-toggle span.devlog-toggle-date {
+      font-size: 0.8rem;
+      opacity: 0.8;
+      white-space: nowrap;
+    }
+
+    .devlog-toggle span.devlog-toggle-icon {
+      margin-left: 0.5rem;
+    }
+
+    .devlog-older-body {
+      margin-top: 8px;
+      border-radius: 10px;
+      background: rgba(255, 255, 255, 0.7);
+      padding: 10px;
+      font-size: 0.95rem;
+      line-height: 1.5;
+      max-height: 200px;
+      overflow-y: auto;
+      white-space: pre-line;
+    }
+
+    .devlog-older-body::-webkit-scrollbar {
+      width: 8px;
+    }
+    .devlog-older-body::-webkit-scrollbar-thumb {
+      background: var(--color-4);
+      border-radius: 10px;
+    }
+    .devlog-older-body::-webkit-scrollbar-track {
+      background: rgba(255,255,255,0.3);
+    }
+
+    .devlog-older-item.open .devlog-toggle-icon {
+      transform: rotate(90deg);
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>Doobie's Portfolio</h1>
+    <h2>Experimental playground</h2>
+    <nav class="main-nav" aria-label="Primary">
+      <button class="active" type="button" onclick="window.location.href='index.html'">Home</button>
+      <button type="button" onclick="window.location.href='project-page.html'">Projects</button>
+      <button type="button" onclick="window.location.href='aboutme.html'">About Me</button>
+    </nav>
+  </header>
+
+  <main>
+    <p>I dunno, I just like to make stuff.</p>
+
+    <!-- Devlog Block -->
+    <div class="devlog-wrapper">
+      <div class="devlog-card">
+        <div class="devlog-tag">Latest Update</div>
+        <p class="devlog-meta" id="latest-meta">Loading…</p>
+        <h3 id="latest-title"></h3>
+        <div class="devlog-body">
+          <p id="latest-body"></p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Older / Collapsible updates -->
+    <section class="devlog-older" aria-label="Past updates">
+      <h4>Past Updates</h4>
+      <p class="devlog-older-empty" id="older-empty">No past updates yet.</p>
+      <div id="older-list"></div>
+    </section>
+  </main>
+
+  <!-- PapaParse for CSV parsing -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      async function loadLatestUpdate() {
+        const metaEl = document.getElementById("latest-meta");
+        const titleEl = document.getElementById("latest-title");
+        const bodyEl = document.getElementById("latest-body");
+        const olderEmptyEl = document.getElementById("older-empty");
+        const olderListEl = document.getElementById("older-list");
+
+        if (window.location.protocol === "file:") {
+          metaEl.textContent = "Open this site on Netlify to load updates.";
+          return;
+        }
+
+        try {
+          /* 🔗 STEP 1 — YOUR GOOGLE SHEETS CSV URL */
+          const CSV_URL = "https://docs.google.com/spreadsheets/d/1ZSL2SaoXHhX-cZqR251qfPh6NsMR0gb0KggfFcR3bRI/edit?usp=sharing";
+
+          /* 🔐 STEP 2 — YOUR SECRET (must match the Secret field in the Form) */
+          const SECRET = "KaiMalachite2041!";
+
+          const res = await fetch(CSV_URL, { cache: "no-store" });
+          if (!res.ok) throw new Error("Network error");
+
+          const csvText = await res.text();
+          const parsed = Papa.parse(csvText, {
+            header: true,
+            skipEmptyLines: true
+          });
+
+          const rows = parsed.data || [];
+
+          if (!rows.length) {
+            metaEl.textContent = "No updates yet.";
+            titleEl.textContent = "";
+            bodyEl.textContent = "";
+            olderEmptyEl.textContent = "No past updates yet.";
+            return;
+          }
+
+          /* Filter by secret/password */
+          const filtered = rows.filter(row => {
+            const s = (row["Secret"] || row["secret"] || row["Password"] || row["password"] || "").trim();
+            return s === SECRET;
+          });
+
+          if (!filtered.length) {
+            metaEl.textContent = "No visible updates.";
+            titleEl.textContent = "";
+            bodyEl.textContent = "";
+            olderEmptyEl.textContent = "No past updates available.";
+            return;
+          }
+
+          /* Latest = last filtered row; older = the rest */
+          const latest = filtered[filtered.length - 1];
+          const older = filtered.slice(0, -1).reverse(); // newest first
+
+          function formatDate(raw) {
+            if (!raw) return "";
+            const d = new Date(raw);
+            if (isNaN(d)) return raw;
+            return d.toLocaleDateString(undefined, {
+              year: "numeric",
+              month: "short",
+              day: "numeric"
+            });
+          }
+
+          /* Fill latest */
+          const rawDate =
+            latest["Timestamp"] ||
+            latest["timestamp"] ||
+            latest["Date"] ||
+            latest["date"] ||
+            "";
+          metaEl.textContent = formatDate(rawDate) || rawDate || "";
+          titleEl.textContent = latest["Title"] || latest["title"] || "(No title)";
+          bodyEl.textContent = latest["Body"] || latest["body"] || "(No content)";
+
+          /* Build older collapsible list */
+          olderListEl.innerHTML = "";
+
+          if (!older.length) {
+            olderEmptyEl.textContent = "No past updates yet.";
+          } else {
+            olderEmptyEl.style.display = "none";
+
+            older.forEach((row, index) => {
+              const item = document.createElement("div");
+              item.className = "devlog-older-item";
+
+              const btn = document.createElement("button");
+              btn.type = "button";
+              btn.className = "devlog-toggle";
+
+              const t = row["Title"] || row["title"] || "(No title)";
+              const d =
+                row["Timestamp"] ||
+                row["timestamp"] ||
+                row["Date"] ||
+                row["date"] ||
+                "";
+
+              const titleSpan = document.createElement("span");
+              titleSpan.className = "devlog-toggle-title";
+              titleSpan.textContent = t;
+
+              const dateSpan = document.createElement("span");
+              dateSpan.className = "devlog-toggle-date";
+              dateSpan.textContent = formatDate(d) || d || "";
+
+              const iconSpan = document.createElement("span");
+              iconSpan.className = "devlog-toggle-icon";
+              iconSpan.textContent = "›";
+
+              btn.appendChild(titleSpan);
+              btn.appendChild(dateSpan);
+              btn.appendChild(iconSpan);
+
+              const bodyDiv = document.createElement("div");
+              bodyDiv.className = "devlog-older-body";
+              bodyDiv.hidden = true;
+              bodyDiv.textContent = row["Body"] || row["body"] || "(No content)";
+
+              btn.addEventListener("click", () => {
+                const willOpen = bodyDiv.hidden;
+                bodyDiv.hidden = !willOpen;
+                item.classList.toggle("open", willOpen);
+              });
+
+              item.appendChild(btn);
+              item.appendChild(bodyDiv);
+              olderListEl.appendChild(item);
+            });
+          }
+
+        } catch (err) {
+          console.error(err);
+          metaEl.textContent = "Could not load updates.";
+        }
+      }
+
+      loadLatestUpdate();
+    });
+  </script>
+
+  <script defer src="script.js"></script>
+</body>
+</html>
