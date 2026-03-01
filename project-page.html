@@ -29,6 +29,7 @@
             Made this in an hour for my first school project. 
           </p>
           <iframe
+            id="shooter-frame"
             class="shooter-embed"
             src="./1hrfps_assets/web_game.html"
             title="One Hour Shooter"
@@ -94,6 +95,31 @@
     <script defer src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
 
     <!-- App JS last -->
+    <script>
+      (async function () {
+        const frame = document.getElementById("shooter-frame");
+        if (!frame) return;
+
+        const candidates = [
+          "./1hrfps_assets/web_game.html",
+          "1hrfps_assets/web_game.html",
+          "/1hrfps_assets/web_game.html",
+          "/portfolio/1hrfps_assets/web_game.html",
+        ];
+
+        for (const path of candidates) {
+          try {
+            const res = await fetch(path, { method: "GET", cache: "no-store" });
+            if (res.ok) {
+              frame.src = path;
+              return;
+            }
+          } catch (_) {}
+        }
+
+        frame.replaceWith("Game failed to load (404).");
+      })();
+    </script>
     <script defer src="script.js"></script>
   </body>
   </html>
