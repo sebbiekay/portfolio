@@ -414,3 +414,12 @@ a {
   flex: 0 0 100%;
   margin-bottom: 0; /* avoid vertical gaps when arranged horizontally */
 }
+
+.shooter-embed {
+  width: min(100%, 760px);
+  aspect-ratio: 16 / 9;
+  border: 0;
+  border-radius: 12px;
+  display: block;
+  background: #000;
+}

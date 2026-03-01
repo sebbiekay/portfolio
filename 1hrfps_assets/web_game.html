@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>One Hour Shooter</title>
+    <style>
+      :root {
+        --bg: #050505;
+        --panel: rgba(0, 0, 0, 0.6);
+        --text: #fff;
+        --border: #3f3f3f;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: radial-gradient(circle at 20% 10%, #111a2f 0%, var(--bg) 60%);
+        color: var(--text);
+        font-family: "Nunito", "Segoe UI", sans-serif;
+      }
+
+      .frame {
+        width: min(96vw, 980px);
+        padding: 8px;
+      }
+
+      #loading {
+        margin-bottom: 8px;
+        padding: 8px 12px;
+        border-radius: 8px;
+        background: var(--panel);
+        text-align: center;
+      }
+
+      #game-canvas {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 16 / 9;
+        border: 2px solid var(--border);
+        border-radius: 10px;
+        image-rendering: pixelated;
+        background: #000;
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="frame">
+      <div id="loading">Booting game runtime...</div>
+      <canvas id="game-canvas" width="960" height="540"></canvas>
+    </div>
+
+    <script type="module">
+      import { loadPyodide } from "https://cdn.jsdelivr.net/pyodide/v0.25.1/full/pyodide.mjs";
+
+      const gameSource = `import random
+from js import document, window
+from pyodide.ffi import create_proxy
+
+canvas = document.getElementById("game-canvas")
+ctx = canvas.getContext("2d")
+
+SCREEN_WIDTH = canvas.width
+SCREEN_HEIGHT = canvas.height
+
+PLAYER_WIDTH = 50
+PLAYER_HEIGHT = 60
+PLAYER_SPEED = 320
+STARTING_LIVES = 3
+
+BULLET_WIDTH = 10
+BULLET_HEIGHT = 20
+BULLET_SPEED = 500
+
+ENEMY_WIDTH = 50
+ENEMY_HEIGHT = 60
+ENEMY_SPEED = 120
+ENEMY_SPAWN_INTERVAL = 2.0
+
+HIT_REWARD = 100
+COLLISION_PENALTY = 50
+
+pressed_keys = set()
+key_down_proxy = None
+key_up_proxy = None
+loop_proxy = None
+
+player = {}
+bullets = []
+enemies = []
+score = 0
+lives = STARTING_LIVES
+game_over = False
+game_over_message = "Game Over"
+enemy_timer = 0.0
+last_timestamp = None
+
+assets = {}
+
+
+def load_assets():
+    for name in ["bg", "player", "bullet", "enemy"]:
+        img = document.createElement("img")
+        img.src = f"./{name}.png"
+        assets[name] = img
+
+
+def reset_game():
+    global player, bullets, enemies, score, lives, game_over, enemy_timer, last_timestamp, game_over_message
+    player = {
+        "x": SCREEN_WIDTH / 2 - PLAYER_WIDTH / 2,
+        "y": SCREEN_HEIGHT - PLAYER_HEIGHT - 10,
+        "w": PLAYER_WIDTH,
+        "h": PLAYER_HEIGHT,
+    }
+    bullets = []
+    enemies = []
+    score = 0
+    lives = STARTING_LIVES
+    game_over = False
+    game_over_message = "Game Over"
+    enemy_timer = 0.0
+    last_timestamp = None
+
+
+def spawn_bullet():
+    if game_over:
+        return
+    bullets.append({
+        "x": player["x"] + (PLAYER_WIDTH - BULLET_WIDTH) / 2,
+        "y": player["y"] - 5,
+        "w": BULLET_WIDTH,
+        "h": BULLET_HEIGHT,
+    })
+
+
+def spawn_enemy():
+    enemies.append({
+        "x": random.randint(0, SCREEN_WIDTH - ENEMY_WIDTH),
+        "y": -ENEMY_HEIGHT,
+        "w": ENEMY_WIDTH,
+        "h": ENEMY_HEIGHT,
+    })
+
+
+def clamp(value, min_value, max_value):
+    return max(min_value, min(value, max_value))
+
+
+def overlaps(a, b):
+    return (
+        a["x"] < b["x"] + b["w"]
+        and a["x"] + a["w"] > b["x"]
+        and a["y"] < b["y"] + b["h"]
+        and a["y"] + a["h"] > b["y"]
+    )
+
+
+def trigger_game_over(message):
+    global game_over, game_over_message
+    game_over = True
+    game_over_message = message
+
+
+def on_keydown(event):
+    key = event.code
+    pressed_keys.add(key)
+    if key in {"ArrowLeft", "ArrowRight", "KeyA", "KeyD", "Space"}:
+        event.preventDefault()
+    if key == "Space":
+        spawn_bullet()
+    elif key == "KeyR" and game_over:
+        reset_game()
+    elif key == "KeyQ":
+        trigger_game_over("Quit")
+
+
+def on_keyup(event):
+    key = event.code
+    pressed_keys.discard(key)
+    if key in {"ArrowLeft", "ArrowRight", "KeyA", "KeyD", "Space"}:
+        event.preventDefault()
+
+
+def update_state(delta_seconds):
+    global enemy_timer, lives, score
+    if game_over:
+        return
+
+    move_direction = 0
+    if "ArrowLeft" in pressed_keys or "KeyA" in pressed_keys:
+        move_direction -= 1
+    if "ArrowRight" in pressed_keys or "KeyD" in pressed_keys:
+        move_direction += 1
+    player["x"] += move_direction * PLAYER_SPEED * delta_seconds
+    player["x"] = clamp(player["x"], 0, SCREEN_WIDTH - PLAYER_WIDTH)
+
+    for bullet in bullets[:]:
+        bullet["y"] -= BULLET_SPEED * delta_seconds
+        if bullet["y"] + BULLET_HEIGHT < 0:
+            bullets.remove(bullet)
+
+    enemy_timer += delta_seconds
+    if enemy_timer >= ENEMY_SPAWN_INTERVAL:
+        spawn_enemy()
+        enemy_timer = 0.0
+
+    for enemy in enemies[:]:
+        enemy["y"] += ENEMY_SPEED * delta_seconds
+        if enemy["y"] > SCREEN_HEIGHT:
+            enemies.remove(enemy)
+
+    for bullet in bullets[:]:
+        for enemy in enemies[:]:
+            if overlaps(bullet, enemy):
+                bullets.remove(bullet)
+                enemies.remove(enemy)
+                score += HIT_REWARD
+                break
+
+    for enemy in enemies[:]:
+        if overlaps(enemy, player):
+            enemies.remove(enemy)
+            score = max(0, score - COLLISION_PENALTY)
+            lives -= 1
+            if lives <= 0:
+                trigger_game_over("Game Over")
+            break
+
+
+def draw():
+    ctx.drawImage(assets["bg"], 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT)
+    ctx.drawImage(assets["player"], player["x"], player["y"], PLAYER_WIDTH, PLAYER_HEIGHT)
+
+    for bullet in bullets:
+        ctx.drawImage(assets["bullet"], bullet["x"], bullet["y"], BULLET_WIDTH, BULLET_HEIGHT)
+
+    for enemy in enemies:
+        ctx.save()
+        ctx.translate(enemy["x"] + ENEMY_WIDTH / 2, enemy["y"] + ENEMY_HEIGHT / 2)
+        ctx.scale(1, -1)
+        ctx.drawImage(assets["enemy"], -ENEMY_WIDTH / 2, -ENEMY_HEIGHT / 2, ENEMY_WIDTH, ENEMY_HEIGHT)
+        ctx.restore()
+
+    ctx.fillStyle = "#fff"
+    ctx.font = "22px Nunito, sans-serif"
+    ctx.textAlign = "left"
+    ctx.fillText(f"Score: {score}", 10, 28)
+    ctx.fillText(f"Lives: {lives}", 10, 58)
+    ctx.fillText("Move: A/D or Arrow Keys", 10, 90)
+    ctx.fillText("Shoot: Space", 10, 120)
+    ctx.fillText("Quit: Q  |  Restart: R", 10, 150)
+
+    if game_over:
+        ctx.fillStyle = "rgba(0, 0, 0, 0.65)"
+        ctx.fillRect(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT)
+        ctx.fillStyle = "#fff"
+        ctx.textAlign = "center"
+        ctx.font = "56px Nunito, sans-serif"
+        ctx.fillText(game_over_message, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 - 50)
+        ctx.font = "26px Nunito, sans-serif"
+        ctx.fillText(f"Final Score: {score}", SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 4)
+        ctx.fillText("Press R to Restart", SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2 + 40)
+        ctx.textAlign = "left"
+
+
+def game_loop(timestamp):
+    global last_timestamp
+    if last_timestamp is None:
+        last_timestamp = timestamp
+    delta_seconds = min((timestamp - last_timestamp) / 1000.0, 1 / 20)
+    last_timestamp = timestamp
+    update_state(delta_seconds)
+    draw()
+    window.requestAnimationFrame(loop_proxy)
+
+
+def init():
+    global key_down_proxy, key_up_proxy, loop_proxy
+    load_assets()
+    reset_game()
+    key_down_proxy = create_proxy(on_keydown)
+    key_up_proxy = create_proxy(on_keyup)
+    document.addEventListener("keydown", key_down_proxy)
+    document.addEventListener("keyup", key_up_proxy)
+    loop_proxy = create_proxy(game_loop)
+    window.requestAnimationFrame(loop_proxy)
+
+
+init()
+`;
+
+      async function main() {
+        const loading = document.getElementById("loading");
+        loading.textContent = "Loading Python runtime...";
+        const pyodide = await loadPyodide();
+        loading.textContent = "Starting game...";
+        await pyodide.runPythonAsync(gameSource);
+        loading.remove();
+      }
+
+      main().catch((err) => {
+        console.error(err);
+        document.getElementById("loading").textContent =
+          "Failed to start game. Open browser console for details.";
+      });
+    </script>
+  </body>
+</html>
