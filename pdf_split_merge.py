@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-
+#This version is now deprecated
 import os
 import PyPDF2
 from PyPDF2 import PdfReader, PdfWriter
