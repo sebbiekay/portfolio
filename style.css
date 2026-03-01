@@ -35,6 +35,19 @@ body {
   padding: 20px;
 }
 
+header,
+main {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 h1, h2, h3 {
   font-family: "Chelsea Market", cursive;
   margin: 10px 0;
@@ -422,4 +435,63 @@ a {
   border-radius: 12px;
   display: block;
   background: #000;
+}
+
+/* ========================
+   Home Devlog
+======================== */
+#devlog {
+  width: min(92%, 680px);
+  margin: 10px auto 30px;
+  background: rgba(255, 255, 255, 0.4);
+  border-radius: 20px;
+  padding: 16px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(8px);
+}
+
+#devlog-container {
+  display: grid;
+  gap: 14px;
+}
+
+.devlog-entry {
+  background: rgba(255, 255, 255, 0.45);
+  border-radius: 16px;
+  padding: 14px 16px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(6px);
+  text-align: left;
+}
+
+.devlog-date {
+  font-family: "Chelsea Market", cursive;
+  font-size: 0.95rem;
+  opacity: 0.75;
+}
+
+.devlog-title {
+  margin: 6px 0 8px;
+  font-size: clamp(1.1rem, 3vw, 1.4rem);
+}
+
+.devlog-body {
+  margin: 0;
+  max-width: 100%;
+  font-size: clamp(0.95rem, 2.2vw, 1.1rem);
+  line-height: 1.5;
+  white-space: pre-line;
+}
+
+.devlog-status {
+  margin: 0;
+}
+
+.devlog-show-older {
+  justify-self: center;
+}
+
+.devlog-older-list {
+  display: grid;
+  gap: 12px;
 }
