@@ -31,7 +31,7 @@
           <iframe
             id="shooter-frame"
             class="shooter-embed"
-            src="./1hrfps_assets/web_game.html"
+            src="about:blank"
             title="One Hour Shooter"
             loading="lazy"
             allow="autoplay; fullscreen"
@@ -96,28 +96,139 @@
 
     <!-- App JS last -->
     <script>
-      (async function () {
+      (function () {
         const frame = document.getElementById("shooter-frame");
         if (!frame) return;
 
-        const candidates = [
-          "./1hrfps_assets/web_game.html",
-          "1hrfps_assets/web_game.html",
-          "/1hrfps_assets/web_game.html",
-          "/portfolio/1hrfps_assets/web_game.html",
-        ];
+        frame.srcdoc = `<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    html, body { margin: 0; height: 100%; background: #050505; color: #fff; font: 16px system-ui, sans-serif; }
+    .wrap { width: 100%; height: 100%; display: grid; place-items: center; }
+    canvas { width: 100%; height: auto; aspect-ratio: 16 / 9; display: block; background: linear-gradient(180deg, #111a2f 0%, #050505 100%); }
+  </style>
+</head>
+<body>
+  <div class="wrap"><canvas id="game" width="960" height="540"></canvas></div>
+  <script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+    const W = canvas.width, H = canvas.height;
 
-        for (const path of candidates) {
-          try {
-            const res = await fetch(path, { method: "GET", cache: "no-store" });
-            if (res.ok) {
-              frame.src = path;
-              return;
+    const player = { x: W / 2 - 25, y: H - 70, w: 50, h: 60, speed: 320 };
+    const bullets = [];
+    const enemies = [];
+    const keys = new Set();
+
+    let score = 0, lives = 3, gameOver = false, overText = "Game Over";
+    let enemyTimer = 0, lastTs = 0;
+
+    function spawnEnemy() {
+      enemies.push({ x: Math.random() * (W - 50), y: -60, w: 50, h: 60, speed: 120 });
+    }
+
+    function overlaps(a, b) {
+      return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+    }
+
+    addEventListener("keydown", (e) => {
+      keys.add(e.code);
+      if (["ArrowLeft","ArrowRight","KeyA","KeyD","Space"].includes(e.code)) e.preventDefault();
+      if (e.code === "Space" && !gameOver) bullets.push({ x: player.x + 20, y: player.y - 4, w: 10, h: 20, speed: 500 });
+      if (e.code === "KeyR" && gameOver) { score = 0; lives = 3; gameOver = false; overText = "Game Over"; bullets.length = 0; enemies.length = 0; }
+      if (e.code === "KeyQ") { gameOver = true; overText = "Quit"; }
+    });
+    addEventListener("keyup", (e) => keys.delete(e.code));
+
+    function drawShip() {
+      ctx.fillStyle = "#40beff";
+      ctx.fillRect(player.x, player.y + 12, player.w, player.h - 12);
+      ctx.beginPath();
+      ctx.moveTo(player.x, player.y + 12);
+      ctx.lineTo(player.x + player.w / 2, player.y);
+      ctx.lineTo(player.x + player.w, player.y + 12);
+      ctx.closePath();
+      ctx.fill();
+    }
+
+    function loop(ts) {
+      const dt = Math.min((ts - (lastTs || ts)) / 1000, 0.05);
+      lastTs = ts;
+
+      if (!gameOver) {
+        let dir = 0;
+        if (keys.has("ArrowLeft") || keys.has("KeyA")) dir -= 1;
+        if (keys.has("ArrowRight") || keys.has("KeyD")) dir += 1;
+        player.x = Math.max(0, Math.min(W - player.w, player.x + dir * player.speed * dt));
+
+        for (const b of bullets) b.y -= b.speed * dt;
+        for (const e of enemies) e.y += e.speed * dt;
+        for (let i = bullets.length - 1; i >= 0; i--) if (bullets[i].y + bullets[i].h < 0) bullets.splice(i, 1);
+        for (let i = enemies.length - 1; i >= 0; i--) if (enemies[i].y > H) enemies.splice(i, 1);
+
+        enemyTimer += dt;
+        if (enemyTimer >= 2) { spawnEnemy(); enemyTimer = 0; }
+
+        for (let i = bullets.length - 1; i >= 0; i--) {
+          for (let j = enemies.length - 1; j >= 0; j--) {
+            if (overlaps(bullets[i], enemies[j])) {
+              bullets.splice(i, 1);
+              enemies.splice(j, 1);
+              score += 100;
+              break;
             }
-          } catch (_) {}
+          }
         }
 
-        frame.replaceWith("Game failed to load (404).");
+        for (let i = enemies.length - 1; i >= 0; i--) {
+          if (overlaps(enemies[i], player)) {
+            enemies.splice(i, 1);
+            score = Math.max(0, score - 50);
+            lives -= 1;
+            if (lives <= 0) { gameOver = true; overText = "Game Over"; }
+            break;
+          }
+        }
+      }
+
+      ctx.clearRect(0, 0, W, H);
+      drawShip();
+      ctx.fillStyle = "#ffe678";
+      bullets.forEach((b) => ctx.fillRect(b.x, b.y, b.w, b.h));
+      ctx.fillStyle = "#ff6e6e";
+      enemies.forEach((e) => ctx.fillRect(e.x, e.y, e.w, e.h));
+
+      ctx.fillStyle = "#fff";
+      ctx.font = "22px system-ui, sans-serif";
+      ctx.fillText("Score: " + score, 10, 28);
+      ctx.fillText("Lives: " + lives, 10, 56);
+      ctx.font = "18px system-ui, sans-serif";
+      ctx.fillText("Move: A/D or Arrow Keys", 10, 86);
+      ctx.fillText("Shoot: Space", 10, 110);
+      ctx.fillText("Quit: Q  |  Restart: R", 10, 134);
+
+      if (gameOver) {
+        ctx.fillStyle = "rgba(0,0,0,0.65)";
+        ctx.fillRect(0, 0, W, H);
+        ctx.fillStyle = "#fff";
+        ctx.textAlign = "center";
+        ctx.font = "56px system-ui, sans-serif";
+        ctx.fillText(overText, W / 2, H / 2 - 45);
+        ctx.font = "28px system-ui, sans-serif";
+        ctx.fillText("Final Score: " + score, W / 2, H / 2 + 4);
+        ctx.fillText("Press R to Restart", W / 2, H / 2 + 40);
+        ctx.textAlign = "left";
+      }
+
+      requestAnimationFrame(loop);
+    }
+    requestAnimationFrame(loop);
+  <\/script>
+</body>
+</html>`;
       })();
     </script>
     <script defer src="script.js"></script>
