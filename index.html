@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Home</title>
   <link rel="stylesheet" href="style.css" />
-  <!-- Devlog-specific styling matching your slides & journal aesthetic -->
+  <!-- Devlog-specific styling matching slides & journal aesthetic -->
   <style>
     /* Devlog main card */
     .devlog-wrapper {
@@ -193,25 +193,32 @@
     <p>I dunno, I just like to make stuff.</p>
 
     <!-- Devlog Block -->
-    <div class="devlog-wrapper">
-      <div class="devlog-card">
-        <div class="devlog-tag">Latest Update</div>
-        <p class="devlog-meta" id="latest-meta">Loading…</p>
-        <h3 id="latest-title"></h3>
-        <div class="devlog-body">
-          <p id="latest-body"></p>
-        </div>
-      </div>
-    </div>
+  <section id="devlog">
+  <h2>🛠 Live Devlog</h2>
+  <div id="devlog-container"></div>
+</section>
 
-    <!-- Older / Collapsible updates -->
-    <section class="devlog-older" aria-label="Past updates">
-      <h4>Past Updates</h4>
-      <p class="devlog-older-empty" id="older-empty">No past updates yet.</p>
-      <div id="older-list"></div>
-    </section>
-  </main>
+<script>
+fetch("https://docs.google.com/spreadsheets/d/e/2PACX-1vQnMuksnF4xa8ipamckFjMRBld-qFSiURv4cImc-M10EMDULMVEeUGztF_FVp6xFobRZRnjyaZt1Kdc/pub?output=csv")
+  .then(response => response.text())
+  .then(data => {
+    const rows = data.split("\n").slice(1); // skip header
+    const container = document.getElementById("devlog-container");
 
+    rows.reverse().forEach(row => {
+      const columns = row.split(",");
+      if (columns.length > 1) {
+        const entry = document.createElement("div");
+        entry.className = "dev-entry";
+        entry.innerHTML = `
+          <h3>${columns[0]}</h3>
+          <p>${columns[1]}</p>
+        `;
+        container.appendChild(entry);
+      }
+    });
+  });
+</script>
   <!-- PapaParse for CSV parsing -->
   <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
